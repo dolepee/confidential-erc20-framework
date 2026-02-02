@@ -6,40 +6,40 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Identity is Ownable {
     mapping(address => bool) private isRegistered;
-    mapping(address => euint64) private DateofBirth; // Store Date of Birth as an encrypted timestamp
+    mapping(address => euint64) private dateOfBirth; // Store Date of Birth as an encrypted timestamp
 
     event IdentityRegistered(address indexed user);
-    event DateofBirthUpdated(address indexed user);
+    event dateOfBirthUpdated(address indexed user);
 
-    constructor() Ownable(msg.sender) {}
+    constructor() {}
 
     // Register identity with encrypted Date of Birth (DOB)
     function registerIdentity(address user, einput encryptedDOB, bytes calldata inputProof) external onlyOwner {
         require(!isRegistered[user], "Identity already registered");
 
         euint64 dob = TFHE.asEuint64(encryptedDOB, inputProof);
-        DateofBirth[user] = dob;
+        dateOfBirth[user] = dob;
         isRegistered[user] = true;
 
-        TFHE.allow(DateofBirth[user], msg.sender);
-        TFHE.allow(DateofBirth[user], user);
-        TFHE.allow(DateofBirth[user], address(this));
+        TFHE.allow(dateOfBirth[user], msg.sender);
+        TFHE.allow(dateOfBirth[user], user);
+        TFHE.allow(dateOfBirth[user], address(this));
 
         emit IdentityRegistered(user);
     }
 
     // Update DOB for a user
-    function updateDOB(address user, einput encryptedDateofBirth, bytes calldata inputProof) external onlyOwner {
+    function updateDOB(address user, einput encryptedDOB, bytes calldata inputProof) external onlyOwner {
         require(isRegistered[user], "Identity not registered");
 
-        euint64 dob = TFHE.asEuint64(encryptedDateofBirth, inputProof);
-        DateofBirth[user] = dob;
+        euint64 dob = TFHE.asEuint64(encryptedDOB, inputProof);
+        dateOfBirth[user] = dob;
 
         // Allow access to the updated encrypted DOB
-        TFHE.allow(DateofBirth[user], msg.sender);
-        TFHE.allow(DateofBirth[user], address(this));
+        TFHE.allow(dateOfBirth[user], msg.sender);
+        TFHE.allow(dateOfBirth[user], address(this));
 
-        emit DateofBirthUpdated(user);
+        emit dateOfBirthUpdated(user);
     }
 
     // Calculate if user meets the minimum age requirement
@@ -47,8 +47,8 @@ contract Identity is Ownable {
         require(isRegistered[from], "From address is not registered");
         require(isRegistered[to], "To address is not registered");
 
-        euint64 fromDOB = DateofBirth[from];
-        euint64 toDOB = DateofBirth[to];
+        euint64 fromDOB = dateOfBirth[from];
+        euint64 toDOB = dateOfBirth[to];
 
         uint64 currentTime = uint64(block.timestamp);
 
@@ -77,7 +77,7 @@ contract Identity is Ownable {
     function getDOB(address user) external returns (euint64) {
         require(isRegistered[user], "User is not registered");
 
-        euint64 dob = DateofBirth[user];
+        euint64 dob = dateOfBirth[user];
         TFHE.allow(dob, msg.sender);
         TFHE.allow(dob, address(this));
         return dob;
